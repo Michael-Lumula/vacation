@@ -2,11 +2,18 @@ import React, { useState } from 'react';
 import { Star, Clock, MapPin, Filter } from 'lucide-react';
 import { useBooking, type Destination } from '../../contexts/BookingContext';
 
-interface AllDestinationsProps {
-  onBookNow: (destination: Destination) => void;
+interface SearchData {
+  destination: string;
+  date: string;
+  guests: number;
 }
 
-export function AllDestinations({ onBookNow }: AllDestinationsProps) {
+interface AllDestinationsProps {
+  onBookNow: (destination: Destination) => void;
+  searchData?: SearchData;
+}
+
+export function AllDestinations({ onBookNow, searchData }: AllDestinationsProps) {
   const { destinations } = useBooking();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'price' | 'rating' | 'name'>('rating');
@@ -21,7 +28,17 @@ export function AllDestinations({ onBookNow }: AllDestinationsProps) {
   ];
 
   const filteredDestinations = destinations
-    .filter(dest => selectedCategory === 'all' || dest.category === selectedCategory)
+    .filter(dest => {
+      // Category filter
+      const categoryMatch = selectedCategory === 'all' || dest.category === selectedCategory;
+      
+      // Search filter
+      const searchMatch = !searchData?.destination || 
+        dest.name.toLowerCase().includes(searchData.destination.toLowerCase()) ||
+        dest.country.toLowerCase().includes(searchData.destination.toLowerCase());
+      
+      return categoryMatch && searchMatch;
+    })
     .sort((a, b) => {
       switch (sortBy) {
         case 'price':

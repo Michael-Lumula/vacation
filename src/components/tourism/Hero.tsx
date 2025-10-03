@@ -1,7 +1,25 @@
 import React from 'react';
 import { Search, MapPin, Calendar, Users } from 'lucide-react';
+import { useBooking } from '../../contexts/BookingContext';
 
-export function Hero() {
+interface HeroProps {
+  onSearch: (searchData: { destination: string; date: string; guests: number }) => void;
+}
+
+export function Hero({ onSearch }: HeroProps) {
+  const [searchData, setSearchData] = React.useState({
+    destination: '',
+    date: '',
+    guests: 2
+  });
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch(searchData);
+    // Scroll to destinations section
+    document.getElementById('destinations')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
@@ -27,13 +45,15 @@ export function Hero() {
         </p>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-4xl mx-auto mb-8">
+        <form onSubmit={handleSearch} className="bg-white rounded-2xl p-6 shadow-2xl max-w-4xl mx-auto mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <MapPin className="h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Where to?"
+                value={searchData.destination}
+                onChange={(e) => setSearchData(prev => ({ ...prev, destination: e.target.value }))}
                 className="bg-transparent flex-1 text-gray-700 placeholder-gray-400 focus:outline-none"
               />
             </div>
@@ -41,24 +61,35 @@ export function Hero() {
               <Calendar className="h-5 w-5 text-gray-400" />
               <input
                 type="date"
+                value={searchData.date}
+                onChange={(e) => setSearchData(prev => ({ ...prev, date: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
                 className="bg-transparent flex-1 text-gray-700 focus:outline-none"
               />
             </div>
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <Users className="h-5 w-5 text-gray-400" />
-              <select className="bg-transparent flex-1 text-gray-700 focus:outline-none">
-                <option>2 Guests</option>
-                <option>1 Guest</option>
-                <option>3 Guests</option>
-                <option>4+ Guests</option>
+              <select 
+                value={searchData.guests}
+                onChange={(e) => setSearchData(prev => ({ ...prev, guests: parseInt(e.target.value) }))}
+                className="bg-transparent flex-1 text-gray-700 focus:outline-none"
+              >
+                <option value={1}>1 Guest</option>
+                <option value={2}>2 Guests</option>
+                <option value={3}>3 Guests</option>
+                <option value={4}>4 Guests</option>
+                <option value={5}>5+ Guests</option>
               </select>
             </div>
-            <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2 font-medium">
+            <button 
+              type="submit"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2 font-medium"
+            >
               <Search className="h-5 w-5" />
               Search
             </button>
           </div>
-        </div>
+        </form>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">

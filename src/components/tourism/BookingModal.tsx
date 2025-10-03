@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, Users, CreditCard, MapPin, Clock, Star } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useBooking, type Destination } from '../../contexts/BookingContext';
+import { CheckoutModal } from './CheckoutModal';
 
 interface BookingModalProps {
   destination: Destination;
@@ -18,36 +19,21 @@ export function BookingModal({ destination, onClose }: BookingModalProps) {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    setLoading(true);
-    
-    try {
-      const totalPrice = destination.price * formData.guests;
-      
-      await createBooking({
-        userId: user.id,
-        destinationId: destination.id,
-        destination,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        guests: formData.guests,
-        totalPrice,
-        status: 'pending'
-      });
-      
-      setSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-    } catch (error) {
-      console.error('Booking failed:', error);
-    } finally {
-      setLoading(false);
-    }
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutSuccess = () => {
+    setShowCheckout(false);
+    setSuccess(true);
+    setTimeout(() => {
+      onClose();
+    }, 2000);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -68,15 +54,26 @@ export function BookingModal({ destination, onClose }: BookingModalProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h3>
           <p className="text-gray-600 mb-4">
-            Your booking for {destination.name} has been successfully submitted.
+            Your booking for {destination.name} has been confirmed and paid.
           </p>
           <p className="text-sm text-gray-500">
-            You will receive a confirmation email shortly.
+            You will receive a confirmation email and receipt shortly.
           </p>
         </div>
       </div>
+    );
+  }
+
+  if (showCheckout) {
+    return (
+      <CheckoutModal
+        destination={destination}
+        bookingData={formData}
+        onClose={() => setShowCheckout(false)}
+        onSuccess={handleCheckoutSuccess}
+      />
     );
   }
 
@@ -210,8 +207,7 @@ export function BookingModal({ destination, onClose }: BookingModalProps) {
               disabled={loading}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <CreditCard className="h-5 w-5" />
-              {loading ? 'Processing...' : `Book Now - $${totalPrice + 99}`}
+              {loading ? 'Processing...' : 'Continue to Checkout'}
             </button>
           </form>
 

@@ -4,6 +4,8 @@ import { Header } from '../tourism/Header';
 import { Hero } from '../tourism/Hero';
 import { FeaturedDestinations } from '../tourism/FeaturedDestinations';
 import { AllDestinations } from '../tourism/AllDestinations';
+import { About } from '../tourism/About';
+import { Contact } from '../tourism/Contact';
 import { Footer } from '../tourism/Footer';
 import { AuthModal } from '../tourism/AuthModal';
 import { BookingModal } from '../tourism/BookingModal';
@@ -17,6 +19,7 @@ export function TourismLayout() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
   const [currentView, setCurrentView] = useState<'home' | 'admin' | 'dashboard'>('home');
+  const [searchData, setSearchData] = useState<{ destination: string; date: string; guests: number } | undefined>();
 
   const handleBookNow = (destination: Destination) => {
     if (!user) {
@@ -45,9 +48,11 @@ export function TourismLayout() {
         onDashboardClick={() => setCurrentView('dashboard')}
         isAdmin={isAdmin}
       />
-      <Hero />
+      <Hero onSearch={setSearchData} />
       <FeaturedDestinations onBookNow={handleBookNow} />
-      <AllDestinations onBookNow={handleBookNow} />
+      <AllDestinations onBookNow={handleBookNow} searchData={searchData} />
+      <About />
+      <Contact />
       <Footer />
       
       {showAuthModal && (
