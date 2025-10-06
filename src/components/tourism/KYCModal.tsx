@@ -226,15 +226,22 @@ export function KYCModal({ onClose }: KYCModalProps) {
     if (validatePersonalInfo()) {
       setCurrentStep('documents');
     }
+    // If validation fails, errors are already set and displayed
   };
 
   const handleDocumentsNext = () => {
     if (validateDocuments()) {
       setCurrentStep('review');
     }
+    // If validation fails, errors are already set and displayed
   };
 
   const handleSubmit = async () => {
+    // Final validation before submission
+    if (!validatePersonalInfo() || !validateDocuments()) {
+      return;
+    }
+    
     setLoading(true);
     
     // Simulate KYC submission
@@ -522,7 +529,7 @@ export function KYCModal({ onClose }: KYCModalProps) {
 
               <button
                 onClick={handlePersonalInfoNext}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue to Documents
               </button>
@@ -700,7 +707,7 @@ export function KYCModal({ onClose }: KYCModalProps) {
                 </button>
                 <button
                   onClick={handleDocumentsNext}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Review Submission
                 </button>
