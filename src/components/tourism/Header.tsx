@@ -1,15 +1,16 @@
 import React from 'react';
-import { Plane, User, Settings, LogOut, LayoutDashboard } from 'lucide-react';
+import { Plane, User, Settings, LogOut, LayoutDashboard, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 interface HeaderProps {
   onAuthClick: () => void;
   onAdminClick: () => void;
   onDashboardClick: () => void;
+  onKYCClick: () => void;
   isAdmin: boolean;
 }
 
-export function Header({ onAuthClick, onAdminClick, onDashboardClick, isAdmin }: HeaderProps) {
+export function Header({ onAuthClick, onAdminClick, onDashboardClick, onKYCClick, isAdmin }: HeaderProps) {
   const { user, signOut } = useAuth();
 
   return (
@@ -63,6 +64,13 @@ export function Header({ onAuthClick, onAdminClick, onDashboardClick, isAdmin }:
                       >
                         <LayoutDashboard className="h-4 w-4" />
                         My Bookings
+                      </button>
+                      <button
+                        onClick={onKYCClick}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+                      >
+                        <Shield className="h-4 w-4" />
+                        KYC Verification
                       </button>
                       {isAdmin && (
                         <button

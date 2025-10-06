@@ -9,6 +9,7 @@ import { Contact } from '../tourism/Contact';
 import { Footer } from '../tourism/Footer';
 import { AuthModal } from '../tourism/AuthModal';
 import { BookingModal } from '../tourism/BookingModal';
+import { KYCModal } from '../tourism/KYCModal';
 import { AdminDashboard } from '../admin/AdminDashboard';
 import { UserDashboard } from '../tourism/UserDashboard';
 import type { Destination } from '../../contexts/BookingContext';
@@ -17,6 +18,7 @@ export function TourismLayout() {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showKYCModal, setShowKYCModal] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
   const [currentView, setCurrentView] = useState<'home' | 'admin' | 'dashboard'>('home');
   const [searchData, setSearchData] = useState<{ destination: string; date: string; guests: number } | undefined>();
@@ -46,6 +48,7 @@ export function TourismLayout() {
         onAuthClick={() => setShowAuthModal(true)}
         onAdminClick={() => setCurrentView('admin')}
         onDashboardClick={() => setCurrentView('dashboard')}
+        onKYCClick={() => setShowKYCModal(true)}
         isAdmin={isAdmin}
       />
       <Hero onSearch={setSearchData} />
@@ -67,6 +70,10 @@ export function TourismLayout() {
             setSelectedDestination(null);
           }}
         />
+      )}
+      
+      {showKYCModal && (
+        <KYCModal onClose={() => setShowKYCModal(false)} />
       )}
     </div>
   );
