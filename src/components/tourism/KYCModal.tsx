@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { X, Upload, FileText, Camera, User, MapPin, Calendar, Phone, Mail, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
+interface ValidationErrors {
+  [key: string]: string;
+}
+
 interface KYCModalProps {
   onClose: () => void;
 }
@@ -10,6 +14,7 @@ export function KYCModal({ onClose }: KYCModalProps) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<'personal' | 'documents' | 'review' | 'success'>('personal');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -35,15 +40,197 @@ export function KYCModal({ onClose }: KYCModalProps) {
     selfiePhoto: null as File | null
   });
 
+  const validatePersonalInfo = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    // Name validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    } else if (formData.firstName.length < 2) {
+      newErrors.firstName = 'First name must be at least 2 characters';
+    } else if (!/^[a-zA-Z\s'-]+$/.test(formData.firstName)) {
+      newErrors.firstName = 'First name can only contain letters, spaces, hyphens, and apostrophes';
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    } else if (formData.lastName.length < 2) {
+      newErrors.lastName = 'Last name must be at least 2 characters';
+    } else if (!/^[a-zA-Z\s'-]+$/.test(formData.lastName)) {
+      newErrors.lastName = 'Last name can only contain letters, spaces, hyphens, and apostrophes';
+    }
+
+    // Date of birth validation
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = 'Date of birth is required';
+    } else {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 18) {
+        newErrors.dateOfBirth = 'You must be at least 18 years old';
+      } else if (age > 120) {
+        newErrors.dateOfBirth = 'Please enter a valid date of birth';
+      }
+    }
+
+    // Nationality validation
+    if (!formData.nationality) {
+      newErrors.nationality = 'Nationality is required';
+    }
+
+    // Phone number validation
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (!/^\+?[\d\s\-\(\)]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
+      newErrors.phoneNumber = 'Please enter a valid phone number';
+    }
+
+    // Address validation
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+    } else if (formData.address.length < 5) {
+      newErrors.address = 'Address must be at least 5 characters';
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required';
+    } else if (!/^[a-zA-Z\s'-]+$/.test(formData.city)) {
+      newErrors.city = 'City can only contain letters, spaces, hyphens, and apostrophes';
+    }
+
+    if (!formData.state.trim()) {
+      newErrors.state = 'State/Province is required';
+    }
+
+    if (!formData.zipCode.trim()) {
+      newErrors.zipCode = 'ZIP/Postal code is required';
+    } else if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(formData.zipCode)) {
+      newErrors.zipCode = 'Please enter a valid ZIP/Postal code';
+    }
+
+    if (!formData.country) {
+      newErrors.country = 'Country is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateDocuments = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    // Document number validation
+    if (!formData.documentNumber.trim()) {
+      newErrors.documentNumber = 'Document number is required';
+    } else if (formData.documentNumber.length < 5) {
+      newErrors.documentNumber = 'Document number must be at least 5 characters';
+    } else if (!/^[a-zA-Z0-9]+$/.test(formData.documentNumber)) {
+      newErrors.documentNumber = 'Document number can only contain letters and numbers';
+    }
+
+    // Expiry date validation
+    if (!formData.expiryDate) {
+      newErrors.expiryDate = 'Expiry date is required';
+    } else {
+      const expiryDate = new Date(formData.expiryDate);
+      const today = new Date();
+      
+      if (expiryDate <= today) {
+        newErrors.expiryDate = 'Document must not be expired';
+      }
+      
+      // Check if expiry is too far in the future (more than 20 years)
+      const maxExpiryDate = new Date();
+      maxExpiryDate.setFullYear(maxExpiryDate.getFullYear() + 20);
+      
+      if (expiryDate > maxExpiryDate) {
+        newErrors.expiryDate = 'Expiry date seems invalid';
+      }
+    }
+
+    // Issuing country validation
+    if (!formData.issuingCountry) {
+      newErrors.issuingCountry = 'Issuing country is required';
+    }
+
+    // File validation
+    if (!formData.frontDocument) {
+      newErrors.frontDocument = 'Document front side is required';
+    } else {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!allowedTypes.includes(formData.frontDocument.type)) {
+        newErrors.frontDocument = 'File must be JPG, PNG, or PDF';
+      } else if (formData.frontDocument.size > 10 * 1024 * 1024) {
+        newErrors.frontDocument = 'File size must be less than 10MB';
+      }
+    }
+
+    // Back document validation (only for non-passport documents)
+    if (formData.documentType !== 'passport' && !formData.backDocument) {
+      newErrors.backDocument = 'Document back side is required for this document type';
+    } else if (formData.backDocument) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!allowedTypes.includes(formData.backDocument.type)) {
+        newErrors.backDocument = 'File must be JPG, PNG, or PDF';
+      } else if (formData.backDocument.size > 10 * 1024 * 1024) {
+        newErrors.backDocument = 'File size must be less than 10MB';
+      }
+    }
+
+    // Selfie validation
+    if (!formData.selfiePhoto) {
+      newErrors.selfiePhoto = 'Selfie photo is required';
+    } else {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(formData.selfiePhoto.type)) {
+        newErrors.selfiePhoto = 'Selfie must be JPG or PNG';
+      } else if (formData.selfiePhoto.size > 10 * 1024 * 1024) {
+        newErrors.selfiePhoto = 'File size must be less than 10MB';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleFileUpload = (field: 'frontDocument' | 'backDocument' | 'selfiePhoto') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData(prev => ({ ...prev, [field]: file }));
+      
+      // Clear error when file is selected
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
+    }
+  };
+
+  const handlePersonalInfoNext = () => {
+    if (validatePersonalInfo()) {
+      setCurrentStep('documents');
+    }
+  };
+
+  const handleDocumentsNext = () => {
+    if (validateDocuments()) {
+      setCurrentStep('review');
     }
   };
 
@@ -146,9 +333,14 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.firstName}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.firstName ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="Enter your first name"
                   />
+                  {errors.firstName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
@@ -158,9 +350,14 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.lastName}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.lastName ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="Enter your last name"
                   />
+                  {errors.lastName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -175,9 +372,14 @@ export function KYCModal({ onClose }: KYCModalProps) {
                       required
                       value={formData.dateOfBirth}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        errors.dateOfBirth ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
                     />
                   </div>
+                  {errors.dateOfBirth && (
+                    <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Nationality</label>
@@ -186,13 +388,18 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.nationality}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.nationality ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                   >
                     <option value="">Select nationality</option>
                     {countries.map(country => (
                       <option key={country} value={country}>{country}</option>
                     ))}
                   </select>
+                  {errors.nationality && (
+                    <p className="mt-1 text-sm text-red-600">{errors.nationality}</p>
+                  )}
                 </div>
               </div>
 
@@ -206,10 +413,15 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.phoneNumber}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.phoneNumber ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="+1 (555) 123-4567"
                   />
                 </div>
+                {errors.phoneNumber && (
+                  <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+                )}
               </div>
 
               <div className="mb-6">
@@ -222,10 +434,15 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.address ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="Street address"
                   />
                 </div>
+                {errors.address && (
+                  <p className="mt-1 text-sm text-red-600">{errors.address}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -237,9 +454,14 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.city}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="City"
                   />
+                  {errors.city && (
+                    <p className="mt-1 text-sm text-red-600">{errors.city}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
@@ -249,9 +471,14 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.state}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.state ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="State"
                   />
+                  {errors.state && (
+                    <p className="mt-1 text-sm text-red-600">{errors.state}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
@@ -261,9 +488,14 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.zipCode}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.zipCode ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="12345"
                   />
+                  {errors.zipCode && (
+                    <p className="mt-1 text-sm text-red-600">{errors.zipCode}</p>
+                  )}
                 </div>
               </div>
 
@@ -274,17 +506,22 @@ export function KYCModal({ onClose }: KYCModalProps) {
                   required
                   value={formData.country}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.country ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
                 >
                   <option value="">Select country</option>
                   {countries.map(country => (
                     <option key={country} value={country}>{country}</option>
                   ))}
                 </select>
+                {errors.country && (
+                  <p className="mt-1 text-sm text-red-600">{errors.country}</p>
+                )}
               </div>
 
               <button
-                onClick={() => setCurrentStep('documents')}
+                onClick={handlePersonalInfoNext}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
               >
                 Continue to Documents
@@ -318,9 +555,14 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.documentNumber}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.documentNumber ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="Document number"
                   />
+                  {errors.documentNumber && (
+                    <p className="mt-1 text-sm text-red-600">{errors.documentNumber}</p>
+                  )}
                 </div>
               </div>
 
@@ -333,8 +575,13 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.expiryDate}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.expiryDate ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
+                  {errors.expiryDate && (
+                    <p className="mt-1 text-sm text-red-600">{errors.expiryDate}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Issuing Country</label>
@@ -343,13 +590,18 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     required
                     value={formData.issuingCountry}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.issuingCountry ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                   >
                     <option value="">Select country</option>
                     {countries.map(country => (
                       <option key={country} value={country}>{country}</option>
                     ))}
                   </select>
+                  {errors.issuingCountry && (
+                    <p className="mt-1 text-sm text-red-600">{errors.issuingCountry}</p>
+                  )}
                 </div>
               </div>
 
@@ -359,7 +611,9 @@ export function KYCModal({ onClose }: KYCModalProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Document Front Side
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                  <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-blue-400 transition-colors ${
+                    errors.frontDocument ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}>
                     <input
                       type="file"
                       accept="image/*,.pdf"
@@ -375,6 +629,9 @@ export function KYCModal({ onClose }: KYCModalProps) {
                       <p className="text-xs text-gray-500 mt-1">PNG, JPG or PDF up to 10MB</p>
                     </label>
                   </div>
+                  {errors.frontDocument && (
+                    <p className="mt-1 text-sm text-red-600">{errors.frontDocument}</p>
+                  )}
                 </div>
 
                 {formData.documentType !== 'passport' && (
@@ -382,7 +639,9 @@ export function KYCModal({ onClose }: KYCModalProps) {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Document Back Side
                     </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                    <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-blue-400 transition-colors ${
+                      errors.backDocument ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}>
                       <input
                         type="file"
                         accept="image/*,.pdf"
@@ -398,6 +657,9 @@ export function KYCModal({ onClose }: KYCModalProps) {
                         <p className="text-xs text-gray-500 mt-1">PNG, JPG or PDF up to 10MB</p>
                       </label>
                     </div>
+                    {errors.backDocument && (
+                      <p className="mt-1 text-sm text-red-600">{errors.backDocument}</p>
+                    )}
                   </div>
                 )}
 
@@ -405,7 +667,9 @@ export function KYCModal({ onClose }: KYCModalProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Selfie Photo
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                  <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-blue-400 transition-colors ${
+                    errors.selfiePhoto ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}>
                     <input
                       type="file"
                       accept="image/*"
@@ -421,6 +685,9 @@ export function KYCModal({ onClose }: KYCModalProps) {
                       <p className="text-xs text-gray-500 mt-1">Clear photo of yourself holding the document</p>
                     </label>
                   </div>
+                  {errors.selfiePhoto && (
+                    <p className="mt-1 text-sm text-red-600">{errors.selfiePhoto}</p>
+                  )}
                 </div>
               </div>
 
@@ -432,7 +699,7 @@ export function KYCModal({ onClose }: KYCModalProps) {
                   Back
                 </button>
                 <button
-                  onClick={() => setCurrentStep('review')}
+                  onClick={handleDocumentsNext}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
                 >
                   Review Submission
