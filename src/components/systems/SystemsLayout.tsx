@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ExternalLink, Monitor, Database, Shield, Users, Settings, Globe, FileText, BarChart3, Calendar, Mail } from 'lucide-react';
+import { Search, ExternalLink, Monitor, Database, Shield, Users, Settings, Globe, FileText, BarChart3, Calendar, Mail, Server, Network, Cpu } from 'lucide-react';
 
 interface System {
   id: string;
@@ -231,9 +231,23 @@ export function SystemsLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-24 h-24 bg-primary opacity-10 rounded-full blur-xl animate-float"></div>
+        <div className="absolute top-40 right-20 w-32 h-32 bg-yellow-400 opacity-10 rounded-full blur-2xl animate-float-slow"></div>
+        <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-primary opacity-15 rounded-full blur-xl animate-float-reverse"></div>
+        <div className="absolute bottom-20 right-1/3 w-36 h-36 bg-yellow-300 opacity-10 rounded-full blur-2xl animate-float"></div>
+        <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-primary opacity-5 rounded-full blur-3xl animate-float-slow"></div>
+
+        <Server className="absolute top-1/4 left-1/4 w-16 h-16 text-primary opacity-5 animate-float-slow" />
+        <Network className="absolute top-1/3 right-1/4 w-20 h-20 text-yellow-400 opacity-8 animate-float-reverse" />
+        <Database className="absolute bottom-1/3 left-1/3 w-14 h-14 text-primary opacity-5 animate-float" />
+        <Cpu className="absolute bottom-1/4 right-1/3 w-18 h-18 text-yellow-300 opacity-8 animate-float-slow" />
+      </div>
+
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className="relative bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -246,7 +260,7 @@ export function SystemsLayout() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
         <div className="mb-8 space-y-6">
           {/* Search */}
@@ -259,7 +273,7 @@ export function SystemsLayout() {
               placeholder="Search systems..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors"
+              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
             />
           </div>
 
